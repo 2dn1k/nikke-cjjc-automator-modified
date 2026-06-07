@@ -1,6 +1,6 @@
 # NIKKE CJJC Automator
 
-> **Special Thanks:** This project is based on [entishl/nikke-CArena-Helper](https://github.com/entishl/nikke-CArena-Helper).
+> **Special Thanks:** This project is a modification of [open-junk/nikke-cjjc-automator](https://github.com/open-junk/nikke-cjjc-automator/) which is based on [entishl/nikke-CArena-Helper](https://github.com/entishl/nikke-CArena-Helper).
 
 This project is an automation script for the PC game *NIKKE: Goddess of Victory*, helping players efficiently capture, log, and review data in modes like Champion Arena.
 
