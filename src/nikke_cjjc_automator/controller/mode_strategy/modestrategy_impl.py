@@ -120,13 +120,13 @@ class BracketMode(ModeStrategy):
         p2_path = temp_dir / "p2.png"
         out_path = output_dir / f"prediction-{now_str}.png"
         
-        p1_coord_abs = getattr(s, f"BRACKET{self.arg1}_COORD_ABS", s.PLAYER1_COORD_ABS)
-        p2_coord_abs = getattr(s, f"BRACKET{self.arg2}_COORD_ABS", s.PLAYER2_COORD_ABS)
+        p1_coord_abs = getattr(s, f"BRACKET{self.arg1}_COORD_ABS")
+        p2_coord_abs = getattr(s, f"BRACKET{self.arg2}_COORD_ABS")
         
         # Process player 1
-        automator._process_player(window, c.to_relative(s.PLAYER1_COORD_ABS), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p1_path))
+        automator._process_player(window, c.to_relative(p1_coord_abs), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p1_path))
         # Process player 2
-        automator._process_player(window, c.to_relative(s.PLAYER2_COORD_ABS), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p2_path))
+        automator._process_player(window, c.to_relative(p2_coord_abs), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p2_path))
         
         
         
