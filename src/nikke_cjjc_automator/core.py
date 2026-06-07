@@ -43,6 +43,13 @@ class NikkeAutomator:
             2: ReviewMode(),
             3: AntiBuyMode(),
             4: LeaguePredictMode(),
+            5: BracketMode(1, 2),
+            6: BracketMode(3, 4), 
+            7: BracketMode(5, 6),
+            8: BracketMode(7, 8),
+            9: BracketMode(12, 34),
+            10: BracketMode(56, 78),
+            11: BracketMode(1234, 5678)
         }
 
     def run(self: Self, mode: int) -> None:
