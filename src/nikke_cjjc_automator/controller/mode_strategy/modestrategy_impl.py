@@ -102,3 +102,39 @@ class LeaguePredictMode(ModeStrategy):
         # Stitch all 4 player images horizontally
         automator.stitcher.stitch(player_img_paths, str(out_path), direction="horizontal", spacing=getattr(s, "HORIZONTAL_SPACING", 20))
         automator._notify(str(out_path))
+
+class BracketMode(ModeStrategy):
+    def __init__(self, arg1: int , arg2: int) -> None:
+        self.arg1 = arg1
+        self.arg2 = arg2
+        
+    def run(self, ctx: Any) -> None:
+        # Unpack context
+        c, s, window, automator = ctx['coord'], ctx['settings'], ctx['window'], ctx['automator']
+        temp_dir = automator.temp_dir
+        output_dir = Path(s.OUTPUT_DIR)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        p1_path = temp_dir / "p1.png"
+        p2_path = temp_dir / "p2.png"
+        out_path = output_dir / f"prediction-{now_str}.png"
+        
+        p1_coord_abs = getattr(s, f"BRACKET{self.arg1}_COORD_ABS", s.PLAYER1_COORD_ABS)
+        p2_coord_abs = getattr(s, f"BRACKET{self.arg2}_COORD_ABS", s.PLAYER2_COORD_ABS)
+        
+        # Process player 1
+        automator._process_player(window, c.to_relative(s.PLAYER1_COORD_ABS), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p1_path))
+        # Process player 2
+        automator._process_player(window, c.to_relative(s.PLAYER2_COORD_ABS), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p2_path))
+        
+        
+        
+        
+        # Stitch images horizontally
+        automator.stitcher.stitch([
+            str(p1_path),
+            str(p2_path)
+        ], str(out_path), direction="horizontal", spacing=getattr(s, "HORIZONTAL_SPACING", 50))
+        # Notify user
+        automator._notify(str(out_path))

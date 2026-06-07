@@ -14,7 +14,7 @@ import ctypes
 import tempfile
 from dataclasses import dataclass, field
 from typing import Self, Any, Optional
-from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode
+from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode, BracketMode
 from nikke_cjjc_automator.controller.mode_strategy.mode import ModeContext
 from pathlib import Path
 
