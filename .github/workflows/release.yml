@@ -15,8 +15,13 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    
+    permissions:
+      contents: write
+
     steps:
       - name: Set default variable
+        shell: bash 
         run: echo "INSTALL_UPX=${INSTALL_UPX:-false}" >> $GITHUB_ENV
 
       - name: Checkout code
@@ -24,7 +29,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install UPX  # pyinstaller will automatically use UPX if it's available (in $PATH)
+      - name: Install UPX
         if: env.INSTALL_UPX == 'true'
         uses: crazy-max/ghaction-upx@v3
         with:
@@ -56,18 +61,24 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
-          $changelogFile = "CHANGELOG_${{ github.ref_name || github.sha }}.md"
+          # Use a static name to completely bypass dynamic string passing in env variables
+          $changelogFile = "CHANGELOG_RELEASE.md"
+          
           "# NIKKE CJJC Automator Release Notes`n" | Out-File -Encoding utf8 $changelogFile
           "`n" | Out-File -Encoding utf8 -Append $changelogFile
           "## Last 10 Commit Messages`n" | Out-File -Encoding utf8 -Append $changelogFile
+          
+          # Force git log to format cleanly for markdown without getting mangled by stdout capture
           git log -10 --pretty=format:"- %s" | Out-File -Encoding utf8 -Append $changelogFile
-          echo "CHANGELOG_FILE=$changelogFile" | Out-File -Encoding utf8 -Append $env:GITHUB_ENV
+          
+          # PowerShell way to securely write to $env:GITHUB_ENV
+          "CHANGELOG_FILE=$changelogFile" | Out-File -Encoding utf8 -Append $env:GITHUB_ENV
 
       - name: Upload EXE to Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: dist/nikke-cjjc-automator.exe
-          body_path: ${{ github.workspace }}\${{ env.CHANGELOG_FILE }}
+          body_path: ${{ env.CHANGELOG_FILE }} 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
