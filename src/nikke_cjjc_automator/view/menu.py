@@ -1,7 +1,7 @@
 import sys
 import os
 import questionary
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 SELECT_MODE_CHOICES = [
     "1: Prediction Mode (Please enter the betting page in advance)",
@@ -18,7 +18,8 @@ BRACKET_PREDICTION_CHOICES = [
     "8: Prediction 7 vs 8 (View bracket)",
     "9: Prediction 1&2 vs 3&4 (View bracket)",
     "10: Prediction 5&6 vs 7&8 (View bracket)",
-    "11: Prediction 1&2&3&4 vs 5&6&7&8 (View bracket)"
+    "11: Prediction 1&2&3&4 vs 5&6&7&8 (View bracket)",
+    "12: Custom Bracket Prediction (Manual Selection)"
 ]
 
 BOOLEAN_CHOICES = [
@@ -28,29 +29,36 @@ BOOLEAN_CHOICES = [
 
 ALL_CHOICES = SELECT_MODE_CHOICES[:-1] + BRACKET_PREDICTION_CHOICES
 
-def select_mode() -> Optional[Tuple[int, bool]]:
+def validate_match_input(text: str) -> bool:
+    """Ensures input is an integer between 1 and 8."""
+    return text.isdigit() and 1 <= int(text) <= 8
+
+def select_mode() -> Optional[Tuple[int, bool, Any]]:
     top_8_bool = False
+    custom_args = None  # Holds (arg1, arg2) if mode 12 is chosen
     
     try:
+        # 1. Main prompt selection
         label = questionary.select(
             "Please select a run mode",
             choices=SELECT_MODE_CHOICES
         ).ask()
     except KeyboardInterrupt:
         sys.exit(0)
+        
     if label is None:
         sys.exit(0)
         
-        
+    # 2. Sub-menu logic if Option 5 is selected
     if label == SELECT_MODE_CHOICES[-1]:
-        # Ask the Yes/No confirmation question
         bracket = questionary.select(
             "Which bracket are you viewing?",
             choices=BOOLEAN_CHOICES
         ).ask()
-            
+        
         if bracket is None:
             sys.exit(0)
+            
         if bracket == BOOLEAN_CHOICES[0]:
             top_8_bool = False
         elif bracket == BOOLEAN_CHOICES[1]:
@@ -60,12 +68,28 @@ def select_mode() -> Optional[Tuple[int, bool]]:
             "Please select a bracket prediction option",
             choices=BRACKET_PREDICTION_CHOICES
         ).ask()
-            
+        
         if bracket_selection is None:
             sys.exit(0)     
-                
+            
         label = bracket_selection
+        
+        # 3. Handle manual input if user picks custom mode (Option 12)
+        if label == BRACKET_PREDICTION_CHOICES[-1]:
+            arg1 = questionary.text(
+                "Enter First Player Number (1-8):",
+                validate=validate_match_input
+            ).ask()
+            if arg1 is None: sys.exit(0)
+            
+            arg2 = questionary.text(
+                "Enter Second Player Number (1-8):",
+                validate=validate_match_input
+            ).ask()
+            if arg2 is None: sys.exit(0)
+            
+            custom_args = (int(arg1), int(arg2))
+            
+    mode_index = ALL_CHOICES.index(label) + 1
                 
-    mode_index = ALL_CHOICES.index(bracket_selection) + 1
-                
-    return mode_index, top_8_bool
+    return mode_index, top_8_bool, custom_args

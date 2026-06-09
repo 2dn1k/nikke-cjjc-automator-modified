@@ -30,9 +30,8 @@ class NikkeAutomator:
     is_top_8: bool = False  # Track the top_8 boolean state passed from the menu
     mode_map: dict[int, Any] = field(init=False)
 
-    def set_mode_context(self: Self, mode: int, is_top_8: bool) -> None:
+    def set_mode_context(self: Self, mode: int, is_top_8: bool, custom_args: Optional[Tuple[int, int]] = None) -> None:
         """Dynamically maps modes and stores the bracket selection boolean."""
-        # Moving imports here perfectly eliminates circular dependency / startup crashes!
         from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import (
             PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode, BracketMode
         )
@@ -53,6 +52,10 @@ class NikkeAutomator:
             10: BracketMode(56, 78),
             11: BracketMode(1234, 5678)
         }
+        
+        # Inject dynamic dynamic BracketMode args if mode 12 is chosen
+        if mode == 12 and custom_args is not None:
+            self.mode_map[12] = BracketMode(custom_args[0], custom_args[1])
 
     def __post_init__(self: Self) -> None:
         # Initializing managers and creating temp directory
@@ -62,12 +65,15 @@ class NikkeAutomator:
         self.stitcher = ImageStitcher(self.hotkey_mgr)
         self.temp_dir = Path(tempfile.gettempdir()) / "nikke_cjjc_automator"
 
-    def run(self: Self, mode: int, is_top_8: bool = False) -> None:
+    def run(self: Self, mode: int, is_top_8: bool = False, custom_args: Optional[Tuple[int, int]] = None) -> None:
         import shutil, time, logging
         s = settings
         
+        # Pass custom_args down to context setup
+        self.set_mode_context(mode, is_top_8, custom_args)
+        
         # Build the runtime strategy mappings based on current choices
-        self.set_mode_context(mode, is_top_8)
+        # self.set_mode_context(mode, is_top_8)
         
         # Waiting before starting
         logging.info(f"[START_DELAY] Waiting {getattr(s, 'START_DELAY', 3.0)} seconds before starting...")
@@ -103,7 +109,6 @@ class NikkeAutomator:
         # Waiting after initial player click
         logging.info(f"[INITIAL_PLAYER_DELAY] Waiting {getattr(s, 'INITIAL_PLAYER_DELAY', 2.0)} seconds after initial player click...")
         
-        # REVERTED TO ORIGINAL STATE: No custom pixel shifts are handled here anymore.
         self.action.click(player_coord, window)
         time.sleep(getattr(s, "INITIAL_PLAYER_DELAY", 2.0))
         img_paths = []
@@ -193,12 +198,13 @@ class NikkeAutomator:
         ensure_settings()
 
 # Entry function for CLI execution
-def entry(mode: int | None = None, is_top_8: bool = False) -> None:
+def entry(mode: int | None = None, is_top_8: bool = False, custom_args: Optional[Tuple[int, int]] = None) -> None:
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
     NikkeAutomator.ensure_admin()
     NikkeAutomator.ensure_settings()
     
     if mode is None:
-        mode, is_top_8 = NikkeAutomator.select_mode()
+        # Safely unpack the new 3-element tuple
+        mode, is_top_8, custom_args = NikkeAutomator.select_mode()
         
-    NikkeAutomator().run(mode, is_top_8)
+    NikkeAutomator().run(mode, is_top_8, custom_args)
