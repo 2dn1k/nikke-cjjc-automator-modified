@@ -13,8 +13,7 @@ import os
 import ctypes
 import tempfile
 from dataclasses import dataclass, field
-from typing import Self, Any, Optional
-from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode, BracketMode
+from typing import Self, Any, Optional, Tuple
 from nikke_cjjc_automator.controller.mode_strategy.mode import ModeContext
 from pathlib import Path
 
@@ -28,16 +27,19 @@ class NikkeAutomator:
     stitcher: ImageStitcher = field(init=False)
     temp_dir: Path = field(init=False)
     mode: Optional[int] = None
-    mode_map: dict[int, PredictMode | ReviewMode | AntiBuyMode] = field(init=False)
+    is_top_8: bool = False  # Track the top_8 boolean state passed from the menu
+    mode_map: dict[int, Any] = field(init=False)
 
-    def __post_init__(self: Self) -> None:
-        # Initializing managers and creating temp directory
-        self.coord = CoordinateHelper(settings)
-        self.window_mgr = WindowManager(settings, self.hotkey_mgr)
-        self.action = ActionPerformer(settings, self.hotkey_mgr)
-        self.stitcher = ImageStitcher(self.hotkey_mgr)
-        self.temp_dir = Path(tempfile.gettempdir()) / "nikke_cjjc_automator"
-        # Mapping mode numbers to mode strategies
+    def set_mode_context(self: Self, mode: int, is_top_8: bool) -> None:
+        """Dynamically maps modes and stores the bracket selection boolean."""
+        # Moving imports here perfectly eliminates circular dependency / startup crashes!
+        from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import (
+            PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode, BracketMode
+        )
+        
+        self.mode = mode
+        self.is_top_8 = is_top_8
+        
         self.mode_map = {
             1: PredictMode(),
             2: ReviewMode(),
@@ -52,13 +54,24 @@ class NikkeAutomator:
             11: BracketMode(1234, 5678)
         }
 
-    def run(self: Self, mode: int) -> None:
+    def __post_init__(self: Self) -> None:
+        # Initializing managers and creating temp directory
+        self.coord = CoordinateHelper(settings)
+        self.window_mgr = WindowManager(settings, self.hotkey_mgr)
+        self.action = ActionPerformer(settings, self.hotkey_mgr)
+        self.stitcher = ImageStitcher(self.hotkey_mgr)
+        self.temp_dir = Path(tempfile.gettempdir()) / "nikke_cjjc_automator"
+
+    def run(self: Self, mode: int, is_top_8: bool = False) -> None:
         import shutil, time, logging
         s = settings
+        
+        # Build the runtime strategy mappings based on current choices
+        self.set_mode_context(mode, is_top_8)
+        
         # Waiting before starting
         logging.info(f"[START_DELAY] Waiting {getattr(s, 'START_DELAY', 3.0)} seconds before starting...")
         time.sleep(getattr(s, "START_DELAY", 3.0))
-        self.mode = mode
         self.hotkey_mgr.setup(getattr(s, "STOP_HOTKEY", "ctrl+c").lower())
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         window = self.window_mgr.find_and_activate()
@@ -72,10 +85,10 @@ class NikkeAutomator:
                 'automator': self
             }
             # Executing the corresponding mode strategy
-            if mode in self.mode_map:
-                ModeContext(self.mode_map[mode]).execute(ctx)
+            if self.mode in self.mode_map:
+                ModeContext(self.mode_map[self.mode]).execute(ctx)
             else:
-                raise ValueError(f"Unknown mode: {mode}")
+                raise ValueError(f"Unknown mode: {self.mode}")
         finally:
             shutil.rmtree(self.temp_dir, ignore_errors=True)
             logging.info(f"Cleaned up {self.temp_dir}")
@@ -86,8 +99,11 @@ class NikkeAutomator:
         from pathlib import Path
         c = self.coord
         s = self.config if hasattr(self, 'config') else __import__('nikke_cjjc_automator.config', fromlist=['settings']).settings
+        
         # Waiting after initial player click
         logging.info(f"[INITIAL_PLAYER_DELAY] Waiting {getattr(s, 'INITIAL_PLAYER_DELAY', 2.0)} seconds after initial player click...")
+        
+        # REVERTED TO ORIGINAL STATE: No custom pixel shifts are handled here anymore.
         self.action.click(player_coord, window)
         time.sleep(getattr(s, "INITIAL_PLAYER_DELAY", 2.0))
         img_paths = []
@@ -139,7 +155,6 @@ class NikkeAutomator:
 
     @staticmethod
     def get_manual_path():
-        # Determining the manual path based on the execution environment
         if hasattr(sys, "_MEIPASS"):
             return Path(sys._MEIPASS) / "manual.jpg"
         else:
@@ -148,7 +163,6 @@ class NikkeAutomator:
     @staticmethod
     def ensure_admin() -> None:
         import shlex
-        # Ensuring the program is run as administrator on Windows
         if sys.platform == 'win32' and not NikkeAutomator.is_admin():
             exe = sys.executable
             script = Path(sys.argv[0]).resolve()
@@ -156,7 +170,7 @@ class NikkeAutomator:
             if manual_path.exists():
                 os.startfile(manual_path)
                 notify(
-            """Please run this program as administrator. The manual image has been opened automatically.\n\nAfter closing this window, the program will restart with administrator privileges.\n\nIf you run this program as administrator (double-click or CLI mode), this message will not appear again.\n""", "Administrator Privileges Required")
+                """Please run this program as administrator. The manual image has been opened automatically.\n\nAfter closing this window, the program will restart with administrator privileges.\n\nIf you run this program as administrator (double-click or CLI mode), this message will not appear again.\n""", "Administrator Privileges Required")
             args = ' '.join([shlex.quote(str(script))] + [shlex.quote(str(a)) for a in sys.argv[1:]])
             ctypes.windll.shell32.ShellExecuteW(
                 None, "runas", exe, args, None, 1
@@ -171,19 +185,20 @@ class NikkeAutomator:
             return False
 
     @staticmethod
-    def select_mode() -> int:
+    def select_mode() -> Tuple[int, bool]:
         return select_mode()
 
     @staticmethod
     def ensure_settings() -> None:
-        """Ensure settings file exists and is up-to-date."""
         ensure_settings()
 
 # Entry function for CLI execution
-def entry(mode: int | None = None) -> None:
+def entry(mode: int | None = None, is_top_8: bool = False) -> None:
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
     NikkeAutomator.ensure_admin()
     NikkeAutomator.ensure_settings()
+    
     if mode is None:
-        mode = NikkeAutomator.select_mode()
-    NikkeAutomator().run(mode)
+        mode, is_top_8 = NikkeAutomator.select_mode()
+        
+    NikkeAutomator().run(mode, is_top_8)

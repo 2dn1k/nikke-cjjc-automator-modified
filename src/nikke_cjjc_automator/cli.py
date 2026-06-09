@@ -9,9 +9,18 @@ app = typer.Typer(add_completion=False, no_args_is_help=False)
 def entry_cli():
     NikkeAutomator.ensure_admin()
     args = [a for a in sys.argv[1:] if not a.endswith('.exe')]
+    
+    # If interactive mode (no flags/args passed)
     if not args or not any(a.startswith('-') or a.isdigit() for a in args):
-        mode = NikkeAutomator.select_mode()
-        entry(mode)
+        menu_result = NikkeAutomator.select_mode()
+        
+        # Safely unpack the tuple from the interactive menu
+        if isinstance(menu_result, tuple):
+            mode, is_top_8 = menu_result
+        else:
+            mode, is_top_8 = menu_result, False
+            
+        entry(mode, is_top_8=is_top_8)
         return
     app()
 
@@ -21,9 +30,16 @@ def run(mode: int = typer.Option(None, help="Run mode: 1=Prediction, 2=Review, 3
     NIKKE Automation Script CLI
     If mode is not specified, the interactive menu will be shown.
     """
-    if isinstance(mode, tuple) or mode is None:
-        mode = NikkeAutomator.select_mode()
-    entry(mode)
+    is_top_8 = False
+    
+    if mode is None:
+        menu_result = NikkeAutomator.select_mode()
+        if isinstance(menu_result, tuple):
+            mode, is_top_8 = menu_result
+        else:
+            mode = menu_result
+
+    entry(mode, is_top_8=is_top_8)
 
 if __name__ == "__main__":
     try:

@@ -120,21 +120,38 @@ class BracketMode(ModeStrategy):
         p2_path = temp_dir / "p2.png"
         out_path = output_dir / f"prediction-{now_str}.png"
         
-        p1_coord_abs = getattr(s, f"BRACKET{self.arg1}_COORD_ABS")
-        p2_coord_abs = getattr(s, f"BRACKET{self.arg2}_COORD_ABS")
+        # 1. Grab raw absolute coordinates from settings
+        p1_coord_abs = list(getattr(s, f"BRACKET{self.arg1}_COORD_ABS"))
+        p2_coord_abs = list(getattr(s, f"BRACKET{self.arg2}_COORD_ABS"))
         
-        # Process player 1
-        automator._process_player(window, c.to_relative(p1_coord_abs), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p1_path))
-        # Process player 2
-        automator._process_player(window, c.to_relative(p2_coord_abs), c.to_relative(s.TEAM_COORDS_ABS), s.SCREENSHOT_REGION, str(p2_path))
+        # 2. Shift the absolute Y-coordinates upward by 70px if Top 8 bracket is active
+        if automator.is_top_8:
+            p1_coord_abs[1] -= 70
+            p2_coord_abs[1] -= 70
         
+        # 3. Process player 1 with shifted, safely converted coordinates
+        automator._process_player(
+            window, 
+            c.to_relative(p1_coord_abs), 
+            c.to_relative(s.TEAM_COORDS_ABS), 
+            s.SCREENSHOT_REGION, 
+            str(p1_path)
+        )
         
-        
+        # 4. Process player 2 with shifted, safely converted coordinates
+        automator._process_player(
+            window, 
+            c.to_relative(p2_coord_abs), 
+            c.to_relative(s.TEAM_COORDS_ABS), 
+            s.SCREENSHOT_REGION, 
+            str(p2_path)
+        )
         
         # Stitch images horizontally
         automator.stitcher.stitch([
             str(p1_path),
             str(p2_path)
         ], str(out_path), direction="horizontal", spacing=getattr(s, "HORIZONTAL_SPACING", 50))
+        
         # Notify user
         automator._notify(str(out_path))
