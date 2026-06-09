@@ -32,7 +32,7 @@ class NikkeAutomator:
 
     def set_mode_context(self: Self, mode: int, is_top_8: bool, custom_args: Optional[Tuple[int, int]] = None) -> None:
         """Dynamically maps modes and stores the bracket selection boolean."""
-        from nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl import (
+        from .controller.mode_strategy.modestrategy_impl import (
             PredictMode, ReviewMode, AntiBuyMode, LeaguePredictMode, BracketMode
         )
         
