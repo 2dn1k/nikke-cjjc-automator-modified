@@ -27,7 +27,7 @@ BOOLEAN_CHOICES = [
     "Top 8 Bracket"
 ]
 
-ALL_CHOICES = SELECT_MODE_CHOICES[:-1] + BRACKET_PREDICTION_CHOICES
+ALL_CHOICES = SELECT_MODE_CHOICES[0:4] + BRACKET_PREDICTION_CHOICES
 
 def validate_match_input(text: str) -> bool:
     """Ensures input is an integer between 1 and 8."""
@@ -48,7 +48,7 @@ def select_mode() -> Optional[Tuple[int, bool, list]]:
     if label is None:
         sys.exit(0)
         
-    if label == SELECT_MODE_CHOICES[-1]:
+    if label == SELECT_MODE_CHOICES[4]:
         bracket = questionary.select(
             "Which bracket are you viewing?",
             choices=BOOLEAN_CHOICES
@@ -72,7 +72,7 @@ def select_mode() -> Optional[Tuple[int, bool, list]]:
             
         label = bracket_selection
         
-        if label == BRACKET_PREDICTION_CHOICES[-1]:
+        if label == BRACKET_PREDICTION_CHOICES[7]:
             arg1 = questionary.text(
                 "Enter First Match Number (1-8):",
                 validate=validate_match_input
