@@ -31,7 +31,7 @@ settings_files = ["settings.toml"]
 
 [tool.pdm.scripts]
 nikke-cjjc-automator-build = "python -m PyInstaller src/nikke_cjjc_automator/cli.py -F --name nikke-cjjc-automator --exclude-module pyinstaller --version-file version_info.txt --add-data settings.default.toml;. --add-data img/manual.jpg;."
-nikke-cjjc-automator-build-pyd = "python -m PyInstaller src/nikke_cjjc_automator/cli.py -F --additional-hooks-dir=. -n nikke-cjjc-automator --exclude-module pyinstaller --version-file version_info.txt"
+nikke-cjjc-automator-build-pyd = "python -m PyInstaller src/nikke_cjjc_automator/cli.py -F --additional-hooks-dir=. -n nikke-cjjc-automator --exclude-module pyinstaller --version-file version_info.txt --hidden-import=\"nikke_cjjc_automator.controller.mode_strategy.modestrategy_impl\""
 
 [tool.pdm.build]
 package-dir = "src"
