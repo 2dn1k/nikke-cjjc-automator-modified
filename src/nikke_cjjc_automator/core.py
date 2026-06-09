@@ -135,7 +135,7 @@ class NikkeAutomator:
                     close_coord = c.to_relative(s.PLAYER_DETAILINFO_CLOSE_ABS)
                     self.action.click(close_coord, window)
                     time.sleep(0.3)
-        # Processing team information
+        # Processing team information.
         for i, team_coord in enumerate(team_coords, 1):
             self.action.click(team_coord, window)
             team_img = str(Path(out_path).with_name(f"{Path(out_path).stem}_team{i}{Path(out_path).suffix}"))
